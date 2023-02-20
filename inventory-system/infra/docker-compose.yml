@@ -1,0 +1,25 @@
+version: '3.8'
+
+volumes:
+  data:
+    driver: local
+  config:
+    driver: local
+
+services:
+  db:
+    container_name: 'inventory_system_db'
+    image: mysql:8.0.30
+    platform: linux/x86_64
+    restart: always
+    ports:
+      - '33306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: inventory_systems
+      MYSQL_USER: user
+      MYSQL_PASSWORD: mysql
+      TZ: Asia/Seoul
+    volumes:
+      - data:/var/lib/mysql
+      - config:/etc/mysql.conf.d
