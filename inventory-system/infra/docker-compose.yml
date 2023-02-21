@@ -1,9 +1,15 @@
 version: '3.8'
 
+networks:
+  default:
+    name: 'inventory_system'
+
 volumes:
   data:
     driver: local
   config:
+    driver: local
+  cache:
     driver: local
 
 services:
@@ -23,3 +29,12 @@ services:
     volumes:
       - data:/var/lib/mysql
       - config:/etc/mysql.conf.d
+  redis:
+    container_name: 'inventory_system_redis'
+    image: redis:7.0-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data

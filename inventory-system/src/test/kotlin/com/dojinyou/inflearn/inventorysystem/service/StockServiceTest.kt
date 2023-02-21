@@ -2,7 +2,9 @@ package com.dojinyou.inflearn.inventorysystem.service
 
 import com.dojinyou.inflearn.inventorysystem.domain.Stock
 import com.dojinyou.inflearn.inventorysystem.facade.GapLockStockFacade
+import com.dojinyou.inflearn.inventorysystem.facade.LettuceLockStockFacade
 import com.dojinyou.inflearn.inventorysystem.facade.OptimisticLockStockFacade
+import com.dojinyou.inflearn.inventorysystem.facade.RedissonLockStockFacade
 import com.dojinyou.inflearn.inventorysystem.repository.StockRepository
 import com.github.f4b6a3.ulid.UlidCreator
 import org.assertj.core.api.Assertions
@@ -25,7 +27,13 @@ class StockServiceTest {
     private lateinit var pacade: OptimisticLockStockFacade
 
     @Autowired
-    private lateinit var namedLockPacade: GapLockStockFacade
+    private lateinit var namedLockFacade: GapLockStockFacade
+
+    @Autowired
+    private lateinit var lettuceLockStockFacade: LettuceLockStockFacade
+
+    @Autowired
+    private lateinit var redissonLockStockFacade: RedissonLockStockFacade
 
     @Autowired
     private lateinit var stockRepository: StockRepository
@@ -146,7 +154,59 @@ class StockServiceTest {
         for (i in 1..threadCount)  {
             executorService.submit {
                 try {
-                    namedLockPacade.decrease(stockId, quantity)
+                    namedLockFacade.decrease(stockId, quantity)
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+
+        latch.await()
+
+
+
+        val stock = stockRepository.findById(stockId).orElseThrow()
+
+        Assertions.assertThat(stock.quantity).isEqualTo(baseQuantity - (quantity * threadCount))
+    }
+
+    @Test
+    fun sameTime100RequestWithLettuceLock() {
+        val threadCount = 100
+        val executorService = Executors.newFixedThreadPool(32)
+        val latch = CountDownLatch(threadCount)
+        val quantity = 1L
+
+        for (i in 1..threadCount)  {
+            executorService.submit {
+                try {
+                    lettuceLockStockFacade.decrease(stockId, quantity)
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+
+        latch.await()
+
+
+
+        val stock = stockRepository.findById(stockId).orElseThrow()
+
+        Assertions.assertThat(stock.quantity).isEqualTo(baseQuantity - (quantity * threadCount))
+    }
+
+    @Test
+    fun sameTime100RequestWithRedissonLock() {
+        val threadCount = 100
+        val executorService = Executors.newFixedThreadPool(32)
+        val latch = CountDownLatch(threadCount)
+        val quantity = 1L
+
+        for (i in 1..threadCount)  {
+            executorService.submit {
+                try {
+                    redissonLockStockFacade.decrease(stockId, quantity)
                 } finally {
                     latch.countDown()
                 }

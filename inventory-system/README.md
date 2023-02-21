@@ -4,4 +4,5 @@
 ```shell
 cd infra
 docker compose -p inventory_system_db up -d
+docker compose -p inventory_system_redis up -d
 ```
